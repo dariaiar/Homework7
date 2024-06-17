@@ -8,14 +8,13 @@ import (
 
 func main() {
 	r := make(chan int)
-	p := make(chan int)
-	v := make(chan int)
-	go randNum(r, p, v)
-	go extremum(r, p, v)
+	v := make(chan minMax)
+	go randNum(r, v)
+	go extremum(r, v)
 	time.Sleep(10 * time.Second)
 }
 
-func randNum(r chan int, p chan int, v chan int) {
+func randNum(r chan int, v chan minMax) {
 	for i := 0; i < 5; i++ {
 		numRand := rand.Intn(100)
 		r <- numRand
@@ -23,20 +22,25 @@ func randNum(r chan int, p chan int, v chan int) {
 		time.Sleep(1 * time.Second)
 	}
 	close(r)
-	min := <-p
-	fmt.Println("Minimum number is: ", min)
+	results := <-v
+	fmt.Println("Minimum number is: ", results.min)
+	fmt.Println("Maximum number is: ", results.max)
 	time.Sleep(1 * time.Second)
-	max := <-v
-	fmt.Println("Maximum number is: ", max)
 }
 
-func extremum(r chan int, p chan int, v chan int) {
+type minMax struct {
+	min int
+	max int
+}
+
+func extremum(r chan int, v chan minMax) {
 	var randSlice []int
 	for i := 0; i < 5; i++ {
 		num := <-r
 		randSlice = append(randSlice, num)
 		fmt.Println(randSlice)
 	}
+
 	fmt.Println(randSlice)
 	time.Sleep(3 * time.Second)
 	min := randSlice[0]
@@ -45,16 +49,18 @@ func extremum(r chan int, p chan int, v chan int) {
 			min = num
 		}
 	}
-	p <- min
-	close(p)
-	//fmt.Println("Min num", min)
+
 	max := randSlice[0]
 	for _, num := range randSlice {
 		if num > max {
 			max = num
 		}
 	}
-	v <- max
+
+	results := minMax{
+		min: min,
+		max: max,
+	}
+	v <- results
 	close(v)
-	//fmt.Println("Max num", max)
 }
